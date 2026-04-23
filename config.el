@@ -109,26 +109,84 @@
   )
 
 ;; use system clipboard
-(require 'pbcopy)
-(turn-on-pbcopy)
+;; NixOS + Wayland Clipboard Fix
+;; We use after! select to ensure Doom's defaults don't overwrite this.
+(after! select
+  (let ((wl-copy-path "/run/current-system/sw/bin/wl-copy")
+        (wl-paste-path "/run/current-system/sw/bin/wl-paste"))
 
-;; use wayland copy
-(when (and string= (getenv "XDG_SESSION_TYPE") "wayland")
-  (executable-find "wl-copy")
-  (executable-find "wl-paste"))
-(defun my/wl-copy (text)
-  (if (display-graphic-p)
-      (gui-select-text text)
-    (let ((wl-copy-process
-           (make-process :name "wl-copy"
-                         :buffer nil
-                         :command '("wl-copy")
-                         :connection-type 'pipe)))
-      (process-send-string wl-copy-process text)
-      (process-send-eof wl-copy-process))))
-(defun my/wl-paste ()
-  (if (display-graphic-p)
-      (gui-selection-value)
-    (shell-command-to-string "wl-paste --no-newline")))
-(setq interprogram-cut-function #'my/wl-copy)
-(setq interprogram-paste-function #'my/wl-paste))
+    (if (file-exists-p wl-copy-path)
+        (progn
+          (setq interprogram-cut-function
+                (lambda (text)
+                  (let ((process-connection-type nil))
+                    (let ((proc (make-process :name "wl-copy"
+                                              :buffer nil
+                                              :command (list wl-copy-path)
+                                              :connection-type 'pipe)))
+                      (process-send-string proc text)
+                      (process-send-eof proc)))))
+          (setq interprogram-paste-function
+                (lambda ()
+                  (shell-command-to-string (concat wl-paste-path " --no-newline"))))
+          (message "Clipboard: Wayland integration loaded using %s" wl-copy-path))
+      (message "Clipboard Warning: %s not found!" wl-copy-path))))
+
+;; Test clipboard
+(defun test-clipboard ()
+  "Test clipboard integration."
+  (interactive)
+  (let ((test-text "Doom clipboard test"))
+    (kill-new test-text)
+    (message "Copied: %s" test-text)
+    (sit-for 1)
+    (let ((pasted (current-kill 0)))
+      (message "Pasted: %s" pasted))))
+
+;; Quick test on startup
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "Clipboard configured: %s"
+                     (if interprogram-cut-function "YES" "NO"))))
+
+;; Ensure clipboard works with evil
+(after! evil
+  (setq evil-want-fine-undo t)
+  (setq evil-want-Y-yank-to-eol t)
+  (setq evil-want-integration t)
+  ;; Use system clipboard for yank/paste
+  (setq evil-kill-on-visual-paste nil)
+  (setq evil-want-C-u-scroll t)
+  (setq evil-want-C-i-jump t))
+
+;; Also set kill-ring to use clipboard
+(setq save-interprogram-paste-before-kill t)
+(setq x-select-enable-clipboard t)
+(setq x-select-enable-primary t)
+
+;; Make yank use clipboard
+(setq select-enable-clipboard t)
+(setq select-enable-primary t)
+
+;; Ensure kill-ring and clipboard synchronized
+(setq kill-ring-max 200)
+(setq kill-do-not-save-duplicates t)
+
+;; Keybinding to copy to clipboard (C-c C-c)
+(global-set-key (kbd "C-c C-c") 'clipboard-kill-ring-save)
+(global-set-key (kbd "C-c C-v") 'clipboard-yank)
+
+;; For evil mode, ensure "p" and "P" use clipboard
+(after! evil
+  (defadvice evil-paste-after (before use-clipboard activate)
+    "Use clipboard for paste."
+    (when (and interprogram-paste-function (not current-prefix-arg))
+      (let ((text (funcall interprogram-paste-function)))
+        (when text
+          (kill-new text)))))
+  (defadvice evil-paste-before (before use-clipboard activate)
+    "Use clipboard for paste."
+    (when (and interprogram-paste-function (not current-prefix-arg))
+      (let ((text (funcall interprogram-paste-function)))
+        (when text
+          (kill-new text))))))
