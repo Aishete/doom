@@ -24,10 +24,10 @@
        :desc "Toggle truncate lines"          "t" #'toggle-truncate-lines
        :desc "Toggle treemacs"                "T" #'+treemacs/toggle
        :desc "Toggle treemacs"                "n" #'+treemacs/toggle
-       :desc "Toggle vterm split"             "v" #'+vterm/toggle))
+       :desc "Toggle vterm split"             "v" #'+vterm/toggle));
 
 ;; Options
-(setq org-directory "~/Documents/Org/")
+(setq org-directory "~/document/obsidian/00 - DailyNotes")
 (setq org-modern-table-vertical 1)
 (setq org-modern-table t)
 (setq display-line-numbers-type t) ;; `t' = normal, `relative', `nil' = off.
@@ -110,11 +110,14 @@
 
 ;; use system clipboard
 ;; NixOS + Wayland Clipboard Fix
-;; We use after! select to ensure Doom's defaults don't overwrite this.
-(after! select
+;; Doom's +clipboard module sets interprogram-paste-function to
+;; pbcopy-selection-value which doesn't work on Wayland.
+;; Since NixOS rebuild freezes config in nix store, we run this
+;; on every frame so it always takes effect.
+(defun +clipboard-setup-wl ()
+  "Set up Wayland clipboard integration."
   (let ((wl-copy-path "/run/current-system/sw/bin/wl-copy")
         (wl-paste-path "/run/current-system/sw/bin/wl-paste"))
-
     (if (file-exists-p wl-copy-path)
         (progn
           (setq interprogram-cut-function
@@ -128,9 +131,21 @@
                       (process-send-eof proc)))))
           (setq interprogram-paste-function
                 (lambda ()
-                  (shell-command-to-string (concat wl-paste-path " --no-newline"))))
+                  ;; Use call-process to avoid shell dependency
+                  (with-temp-buffer
+                    (call-process wl-paste-path nil t nil "--no-newline")
+                    (buffer-string))))
+          (setq select-enable-clipboard t)
+          (setq select-enable-primary t)
           (message "Clipboard: Wayland integration loaded using %s" wl-copy-path))
       (message "Clipboard Warning: %s not found!" wl-copy-path))))
+
+;; Run on every new frame to override nix store's frozen +clipboard module
+(add-hook 'after-make-frame-functions
+          (lambda (&optional frame)
+            (+clipboard-setup-wl)))
+;; Also run immediately for initial daemon
+(+clipboard-setup-wl)
 
 ;; Test clipboard
 (defun test-clipboard ()
