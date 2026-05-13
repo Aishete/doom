@@ -19,7 +19,6 @@
        ;;chinese
        ;;japanese
        ;;layout            ; auie,ctsrnm is the superior home row
-       +clipboard
        
        :completion
        company           ; the ultimate code completion backend
@@ -112,9 +111,8 @@
        ;;upload            ; map local to remote projects via ssh/ftp
 
        :os
-       (wayland +clipboard)
+       (tty +osc)           ; improve the terminal Emacs experience
        (:if IS-MAC macos)  ; improve compatibility with macOS
-       ;;tty               ; improve the terminal Emacs experience
 
        :lang
        ;;agda              ; types of types of types of types...

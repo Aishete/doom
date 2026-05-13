@@ -144,8 +144,9 @@
 (add-hook 'after-make-frame-functions
           (lambda (&optional frame)
             (+clipboard-setup-wl)))
-;; Also run immediately for initial daemon
-(+clipboard-setup-wl)
+;; Also run immediately after Doom modules finish loading
+(after! doom-init
+  (+clipboard-setup-wl))
 
 ;; Test clipboard
 (defun test-clipboard ()
