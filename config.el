@@ -204,8 +204,8 @@
         (when text
           (kill-new text))))))
 
-;; use fish shell by default
-(setq explicit-shell-file-name "/run/current-system/sw/bin/fish")
+;; use zsh shell by default
+(setq explicit-shell-file-name "/run/current-system/sw/bin/zsh")
 
 ;; remove LSP delays
 (after! flycheck (setq flycheck-idle-change-delay 0.1))
