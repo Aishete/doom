@@ -1,51 +1,55 @@
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
-;;;
 
-;; Theme
+;; Place your private configuration here! Remember, you do not need to run 'doom
+;; sync' after modifying this file!
+
+
+;; Some functionality uses this to identify you, e.g. GPG configuration, email
+;; clients, file templates and snippets. It is optional.
+(setq user-full-name "John Doe"
+      user-mail-address "john@doe.com")
+
+;; Doom exposes five (optional) variables for controlling fonts in Doom:
+;;
+;; - `doom-font' -- the primary font to use
+;; - `doom-variable-pitch-font' -- a non-monospace font (where applicable)
+;; - `doom-big-font' -- used for `doom-big-font-mode'; use this for
+;;   presentations or streaming.
+;; - `doom-unicode-font' -- for unicode glyphs
+;; - `doom-serif-font' -- for the `fixed-pitch-serif' face
+;;
+;; See 'C-h v doom-font' for documentation and more examples of what they
+;; accept. For example:
+
+(setq doom-font (font-spec :family "Terminess Nerd Font" :size 25 :weight 'medium)
+      doom-variable-pitch-font (font-spec :family "Terminess Nerd Font" :size 25))
+;;
+;; If you or Emacs can't find your font, use 'M-x describe-font' to look them
+;; up, `M-x eval-region' to execute elisp code, and 'M-x doom/reload-font' to
+;; refresh your font settings. If Emacs still can't find your font, it likely
+;; wasn't installed correctly. Font issues are rarely Doom issues!
+
+;; There are two ways to load a theme. Both assume the theme is installed and
+;; available. You can either set `doom-theme' or manually load a theme with the
+;; `load-theme' function. This is the default:
 (setq doom-theme 'catppuccin)
-(setq catppuccin-flavor 'mocha) ; or 'frappe 'latte, 'macchiato, or 'mocha
+(setq catppuccin-flavor 'macchiato) ; or 'frappe 'latte, 'macchiato, or 'mocha
 (load-theme 'catppuccin t)
+;; set transparency... I don't think this works so TODO
+(set-frame-parameter (selected-frame) 'alpha '(85 85))
+(add-to-list 'default-frame-alist '(alpha 85 85))
 
-;; Font
-(setq-default line-spacing nil)
-(setq doom-font (font-spec :family "Monospace" :size 16)
-      doom-font-increment 1)
+;; This determines the style of line numbers in effect. If set to `nil', line
+;; numbers are disabled. For relative line numbers, set this to `relative'.
+(setq display-line-numbers-type t)
 
-;; Keybindings
-(map! :leader
-      :desc "Comment line" "-" #'comment-line)
-(map! :leader
-      (:prefix ("t" . "toggle")
-       :desc "Toggle eshell split"            "e" #'+eshell/toggle
-       :desc "Toggle line highlight in frame" "h" #'hl-line-mode
-       :desc "Toggle line highlight globally" "H" #'global-hl-line-mode
-       :desc "Toggle line numbers"            "l" #'doom/toggle-line-numbers
-       :desc "Toggle markdown-view-mode"      "m" #'my/toggle-markdown-view-mode
-       :desc "Toggle truncate lines"          "t" #'toggle-truncate-lines
-       :desc "Toggle treemacs"                "T" #'+treemacs/toggle
-       :desc "Toggle treemacs"                "n" #'+treemacs/toggle
-       :desc "Toggle vterm split"             "v" #'+vterm/toggle));
+;; If you use `org' and don't want your org files in the default location below,
+;; change `org-directory'. It must be set before org loads!
+(setq org-directory "~/org/")
+;; you can customize your rss feed at ~/org/elfeed.org. This works because I'm
+;; using +org with my rss plugin. Check out
+;; https://github.com/remyhonig/elfeed-org to see an example.
 
-;; Options
-(setq org-directory "~/document/obsidian/00 - DailyNotes")
-(setq org-modern-table-vertical 1)
-(setq org-modern-table t)
-(setq display-line-numbers-type t) ;; `t' = normal, `relative', `nil' = off.
-(setq confirm-kill-emacs nil) ;; Don't confirm on exit
-
-;; use zsh shell by default
-;; (setq explicit-shell-file-name "/run/current-system/sw/bin/zsh")
-
-(defun my/toggle-markdown-view-mode ()
-  "Toggle between `markdown-mode' and `markdown-view-mode'."
-  (interactive)
-  (if (eq major-mode 'markdown-view-mode)
-      (markdown-mode)
-    (markdown-view-mode)))
-
-;; Transparency (Currently broken)
-(set-frame-parameter (selected-frame) 'alpha '(80 80))
-(add-to-list 'default-frame-alist '(alpha 80 80))
 
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
 ;; `after!' block, otherwise Doom's defaults may override your settings. E.g.
@@ -79,12 +83,6 @@
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
 
-;; (after! doom-modeline
-;;   (doom-modeline-def-modeline 'main
-;;     '(bar matches buffer-info vcs word-count)
-;;     '(buffer-position misc-info major-mode)))
-
-;; source: https://nayak.io/posts/golang-development-doom-emacs/
 ;; golang formatting set up
 ;; use gofumpt
 (after! lsp-mode
@@ -108,7 +106,6 @@
                            (unusedvariable . t)))
   )
 
-;; use system clipboard
 ;; NixOS + Wayland Clipboard Fix
 ;; Doom's +clipboard module sets interprogram-paste-function to
 ;; pbcopy-selection-value which doesn't work on Wayland.
@@ -206,3 +203,18 @@
       (let ((text (funcall interprogram-paste-function)))
         (when text
           (kill-new text))))))
+
+;; use fish shell by default
+(setq explicit-shell-file-name "/run/current-system/sw/bin/fish")
+
+;; remove LSP delays
+(after! flycheck (setq flycheck-idle-change-delay 0.1))
+(after! lsp-mode
+  (setq lsp-idle-delay 0.1)
+  :custom
+  (setq lsp-completion-enable-additional-text-edit t)
+  (setq lsp-modeline-code-actions-enable t)
+  )
+
+;; Better debugging
+(use-package! dape)
